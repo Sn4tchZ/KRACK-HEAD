@@ -1,0 +1,17 @@
+{
+  "name": "in-house-temple",
+  "version": "1.0.0",
+  "description": "a bot for inhouse temple discord server",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "author": "KC Oppy",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "mongodb": "^6.3.0",
+    "mongoose": "^8.1.1",
+    "websocket": "^1.0.34"
+  }
+}
