@@ -17,15 +17,16 @@ module.exports = {
                 )
         .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
 	async execute(interaction) {
-        const chanName = interaction.options.getString('queue_name').replace(" ","-");
-        const categoryId = interaction.options.getString('category_id');
-        interaction.guild.channels.create({
+        const chanName = await interaction.options.getString('queue_name').replace(" ","-");
+        const categoryId = await interaction.options.getString('category_id');
+        await interaction.guild.channels.create({
             name: `${chanName}`,
             type: ChannelType.GuildText,
             parent: categoryId,
         }).then(async (channel)=>{
-            channel.lockPermissions();
-            channel.permissionOverwrites.edit('1201861728447762442', { SendMessages: false });
+            await channel.lockPermissions();
+            await channel.permissionOverwrites.edit('1201861728447762442', { SendMessages: false });
+            await channel.permissionOverwrites.edit('1202052171462623272', { SendMessages: true, ViewChannel: true,ReadMessageHistory: true });
             const id = Date.now();
             Lobbys[id] = await new Lobby(channel,id,categoryId);
             await Lobbys[id].init();

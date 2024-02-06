@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, PermissionsBitField } = require('discord.js');
 const { Lobby } = require('../../utils/lobby.js');
 const {Lobbys} = require('../../utils/lobbys.js');
 

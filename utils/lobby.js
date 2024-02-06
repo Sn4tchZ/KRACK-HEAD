@@ -43,7 +43,7 @@ class Lobby {
         };};
     }
 
-    init(){
+    async init(){
         const join = new ButtonBuilder()
 			.setCustomId(`join_queue_${this.id}`)
 			.setLabel('Join Queue')
@@ -60,45 +60,48 @@ class Lobby {
         this.channel.send({ embeds: [this.embed()], components: [row] }).then((msg)=>this.lobbyMsg = msg).catch((e)=>console.log(e));
     }
 
-    addPlayer(discordId) {
+    async addPlayer(discordId) {
         if (this.inscriptionOpen && !inQueue.includes(discordId)) {
             if (this.participants.length < 10 && !this.participants.includes(discordId)) {
                 this.participants.push(discordId);
                 inQueue.push(discordId);
                 if (this.participants.length === 10) {
                     this.inscriptionOpen = false;
+                    let txt = ""; 
+                    this.participants.map((elem)=> txt = txt + `<@${elem}> `);
+                    this.channel.send("get ready "+txt).catch((e)=>console.log(e));
                 }
             } else if (this.participants.length > 10) {
                 this.inscriptionOpen = false;
                 this.participants.splice(10); // Trim the array to the first 10 elements
             }
-            this.updateMsg();
+            await this.updateMsg();
         }
     }
 
-    removePlayer(discordId) {
+    async removePlayer(discordId) {
         if (this.participants.includes(discordId)) {
             this.participants = this.participants.filter(value => value !== discordId);
             if (!this.inscriptionOpen && this.participants.length < 10) {
                 this.inscriptionOpen = true;
             }
             inQueue = inQueue.filter(e => e !== discordId);
-            this.updateMsg();
+            await this.updateMsg();
         }
     }
 
-    readyPlayer(discordId) {
+    async readyPlayer(discordId) {
         if (!this.ready.includes(discordId) && this.participants.includes(discordId)) {
             this.ready.push(discordId);
             if (this.ready.length === this.participants.length) {
-                this.createGame().catch(((error) => console.log(error)));
+                await this.createGame().catch(((error) => console.log(error)));
                 return;
             }
             this.updateMsg();
         }
     }    
 
-    updateMsg(){
+    async updateMsg(){
         let row = null;
         const join = new ButtonBuilder()
 			.setCustomId(`join_queue_${this.id}`)
@@ -124,16 +127,16 @@ class Lobby {
 			.addComponents(ready);
         }
 
-        this.lobbyMsg.edit({ embeds: [this.embed()], components: [row] }).catch((e)=>console.log(e));
+        await this.lobbyMsg.edit({ embeds: [this.embed()], components: [row] }).catch((e)=>console.log(e));
     }
 
     waitUntil(condition) {
         return new Promise(resolve => {
-            const checkCondition = async () => {
+            const checkCondition = () => {
             if (condition()) {
                 const newId = Date.now();
-                Lobbys[newId] = await new Lobby(this.channel,newId,this.categoryId);
-                await Lobbys[newId].init();
+                Lobbys[newId] = new Lobby(this.channel,newId,this.categoryId);
+                Lobbys[newId].init();
                 resolve();
             } else {
                 setTimeout(checkCondition, 60000);
@@ -164,109 +167,112 @@ class Lobby {
                 return true;
             }
         }
+        await this.channel.send('Checking lobbys availability, pls wait').catch((e)=>console.log(e));
 
         this.waitUntil(cond);
 
-        //const channels = await this.channel.guild.channels.fetch();
-        //const filteredChans = await channels.filter((channel)=>channel.parentId == this.categoryId);
-        //channels.forEach((chan)=>console.log(chan));
-        //await console.log('chans',channels);
-        try{
+        await this.channel.guild.roles.create({
+            name: `Blue - ${this.id}`
+        }).then((role)=>this.blueRole= role).catch((err)=>console.log("error creating blue role",err));
 
-            await this.channel.guild.roles.create({
-                name: `Blue - ${this.id}`
-            }).then((role)=>this.blueRole= role);
+        await this.channel.guild.roles.create({
+            name: `Red - ${this.id}`
+        }).then((role)=>this.redRole= role).catch((err)=>console.log("error creating red role",err));
 
-            await this.channel.guild.roles.create({
-                name: `Red - ${this.id}`
-            }).then((role)=>this.redRole= role);
+        await this.teamBlue.forEach(async (value)=>{
+            console.log(value);
+            await this.channel.guild.members.addRole({user: value,role: this.blueRole.id, reason: ""}).catch((err)=>console.log("error adding role",err));
+        })
 
-            await this.teamBlue.forEach((value)=>{
-                console.log(value);
-                this.channel.guild.members.addRole({user: value,role: this.blueRole.id, reason: ""});
-            })
+        await this.teamRed.forEach(async (value)=>{
+            console.log(value);
+            await this.channel.guild.members.addRole({user: value,role: this.redRole.id, reason: ""}).catch((err)=>console.log("error adding role",err));
+        })
 
-            await this.teamRed.forEach((value)=>{
-                console.log(value);
-                this.channel.guild.members.addRole({user: value,role: this.redRole.id, reason: ""});
-            })
+        let redList = "red team : ";
+        await this.teamRed.forEach((element)=> redList = redList + "<@"+element+"> ")
 
-            let redList = "red team : ";
-            this.teamRed.forEach((element)=> redList = redList + "<@"+element+"> ")
+        let blueList = "blue team : ";
+        await this.teamBlue.forEach((element)=>blueList = blueList + "<@"+element+"> ")
 
-            let blueList = "blue team : ";
-            this.teamBlue.forEach((element)=>blueList = blueList + "<@"+element+"> ")
+        await this.channel.guild.channels.create({
+            name: `${this.id}`,
+            type: ChannelType.GuildText,
+            parent: this.categoryId,
+            permissionOverwrites: [
+                {
+                    id: this.blueRole.id,
+                    allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
+                },
+                {
+                    id: '1202052171462623272',
+                    allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak],
+                },
+                {
+                    id: this.redRole.id,
+                    allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
+                },
+                {
+                    id: '1201861728447762442',
+                    deny: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
+                },
+            ],
+        }).then((chan)=>this.textChan = chan).catch((err)=>console.log("error creating channel",err));
+        await this.textChan.send(`game id: ${this.id}`).catch((err)=>console.log("error sending msg",err));
+        await this.textChan.send(blueList).catch((err)=>console.log("error sending msg",err));
+        await this.textChan.send(redList).catch((err)=>console.log("error sending msg",err));
+        await this.getDraft(this.textChan).catch((e)=>console.log("error getting draft",e));
 
-            await this.channel.guild.channels.create({
-                name: `${this.id}`,
-                type: ChannelType.GuildText,
-                parent: this.categoryId,
-                permissionOverwrites: [
-                    {
-                        id: this.blueRole.id,
-                        allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
-                    },
-                    {
-                        id: this.redRole.id,
-                        allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
-                    },
-                    {
-                        id: '1201861728447762442',
-                        deny: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
-                    },
-                ],
-            }).then((chan)=>this.textChan = chan);
-            await this.textChan.send(`game id: ${this.id}`);
-            await this.textChan.send(blueList);
-            await this.textChan.send(redList);
-            await this.getDraft(this.textChan).catch((e)=>console.log(e));
+        await this.channel.guild.channels.create({
+            name: `🔵 - ${this.id}`,
+            type: ChannelType.GuildVoice,
+            parent: this.categoryId,
+            permissionOverwrites: [
+                {
+                    id: this.blueRole.id,
+                    allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak],
+                },
+                {
+                    id: '1202052171462623272',
+                    allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak],
+                },
+                {
+                    id: this.redRole.id,
+                    allow: [PermissionsBitField.Flags.ViewChannel],
+                    deny: [PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak]
+                },
+                {
+                    id: '1201861728447762442',
+                    deny: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
+                },
+            ],
+        }).then((chan)=>this.blueVoc = chan).catch((err)=>console.log("error creating blue channel",err));
 
-            await this.channel.guild.channels.create({
-                name: `🔵 - ${this.id}`,
-                type: ChannelType.GuildVoice,
-                parent: this.categoryId,
-                permissionOverwrites: [
-                    {
-                        id: this.blueRole.id,
-                        allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak],
-                    },
-                    {
-                        id: this.redRole.id,
-                        allow: [PermissionsBitField.Flags.ViewChannel],
-                        deny: [PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak]
-                    },
-                    {
-                        id: '1201861728447762442',
-                        deny: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
-                    },
-                ],
-            }).then((chan)=>this.blueVoc = chan);
-
-            await this.channel.guild.channels.create({
-                name: `🔴 - ${this.id}`,
-                type: ChannelType.GuildVoice,
-                parent: this.categoryId,
-                permissionOverwrites: [
-                    {
-                        id: this.redRole.id,
-                        allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak],
-                    },
-                    {
-                        id: this.blueRole.id,
-                        allow: [PermissionsBitField.Flags.ViewChannel],
-                        deny: [PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak]
-                    },
-                    {
-                        id: '1201861728447762442',
-                        deny: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
-                    },
-                ],
-            }).then((chan)=>this.redVoc = chan);
-        }catch{
-            console.log('error');
-            stopGame();
-        }
-    }
+        await this.channel.guild.channels.create({
+            name: `🔴 - ${this.id}`,
+            type: ChannelType.GuildVoice,
+            parent: this.categoryId,
+            permissionOverwrites: [
+                {
+                    id: this.redRole.id,
+                    allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak],
+                },
+                {
+                    id: '1202052171462623272',
+                    allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak],
+                },
+                {
+                    id: this.blueRole.id,
+                    allow: [PermissionsBitField.Flags.ViewChannel],
+                    deny: [PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak]
+                },
+                {
+                    id: '1201861728447762442',
+                    deny: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
+                },
+            ],
+        }).then((chan)=>this.redVoc = chan).catch((err)=>console.log("error creating red channel",err));
+}
 
     async stopGame(){
         if(this.ready.length < 10) return;
