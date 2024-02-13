@@ -4,7 +4,8 @@
     "guildId": "1201861728447762442",
     "MONGO_URI": "mongodb://localhost:27017/inHouse", 
     "MONGO_AUTHSOURCE": "admin", 
-    "MONGO_USER": "root", 
+    "MONGO_USER": "inHouseBot", 
     "MONGO_DBNAME": "inHouse", 
-    "MONGO_PWD": "rootPassXXX"
+    "MONGO_PWD": "aJCVIZU546#é&"
 }
+

@@ -206,7 +206,7 @@ class Lobby {
                 },
                 {
                     id: '1202052171462623272',
-                    allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak],
+                    allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
                 },
                 {
                     id: this.redRole.id,
@@ -268,7 +268,7 @@ class Lobby {
                 },
                 {
                     id: '1201861728447762442',
-                    deny: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
+                    deny: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak],
                 },
             ],
         }).then((chan)=>this.redVoc = chan).catch((err)=>console.log("error creating red channel",err));

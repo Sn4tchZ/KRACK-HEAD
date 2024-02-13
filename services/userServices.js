@@ -13,8 +13,8 @@ async function registerUserService(discordId, discordName, lolName, lolRank){
         wins: 0,
         losses: 0
     });
-    await user.save().then(()=>console.log(`New user registred: ${user.discordName}`)).catch((e)=>console.log(e));
     
+    await user.save().then(()=>console.log(`New user registred: ${user.discordName}`)).catch((e)=>console.log(e));
 }
 
 module.exports = {

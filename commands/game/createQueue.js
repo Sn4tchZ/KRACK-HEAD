@@ -19,7 +19,7 @@ module.exports = {
 	async execute(interaction) {
         const chanName = await interaction.options.getString('queue_name').replace(" ","-");
         const categoryId = await interaction.options.getString('category_id');
-        await interaction.guild.channels.create({
+        interaction.guild.channels.create({
             name: `${chanName}`,
             type: ChannelType.GuildText,
             parent: categoryId,
@@ -28,7 +28,7 @@ module.exports = {
             await channel.permissionOverwrites.edit('1201861728447762442', { SendMessages: false });
             await channel.permissionOverwrites.edit('1202052171462623272', { SendMessages: true, ViewChannel: true,ReadMessageHistory: true });
             const id = Date.now();
-            Lobbys[id] = await new Lobby(channel,id,categoryId);
+            Lobbys[id] = new Lobby(channel,id,categoryId);
             await Lobbys[id].init();
         }).catch((error)=>{
             interaction.reply('there was en error creating the lobby, retry making sure the category id is the good valid');
