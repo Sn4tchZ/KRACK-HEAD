@@ -16,17 +16,17 @@ async function registerUserService(discordId, discordName, lolName, lolRank){
     await user.save().then(()=>console.log(`New user registred: ${user.discordName}`)).catch((e)=>console.log(e));
 }
 
-async function addUserWin(discordId){
+async function addUserWinService(discordId){
     await User.findOneAndUpdate(discordId, { $inc: { key: wins }}).catch((err)=>console.log('error updating user', err));
 }
 
-async function addUserLoss(discordId){
+async function addUserLossService(discordId){
     await User.findOneAndUpdate(discordId, { $inc: { key: losses }}).catch((err)=>console.log('error updating user', err));
 }
 
 module.exports = {
     registerUserService,
     getUsersService,
-    addUserWin,
-    addUserLoss
+    addUserWinService,
+    addUserLossService
 }

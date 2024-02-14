@@ -2,6 +2,7 @@ const interactionCreate = require("../events/interactionCreate");
 const { ButtonBuilder, ButtonStyle, ActionRowBuilder, PermissionFlagsBits, ChannelType, PermissionsBitField } = require('discord.js');
 let {Lobbys, inQueue} = require('./lobbys.js');
 const WebSocket = require('ws');
+const {addUserWinService, addUserLossService} = require('../../services/userServices.js');
 
 class Lobby {
     constructor(channel,id, categoryId){
@@ -338,6 +339,24 @@ class Lobby {
         });
     }
 
+    async endGame(winner){
+        if(winner){
+            await this.teamBlue.forEach(async (element)=>{
+                await addUserWinService(element);
+            });
+            await this.teamRed.forEach(async (element)=>{
+                await addUserLossService(element);
+            });
+        }else{
+            await this.teamRed.forEach(async (element)=>{
+                await addUserWinService(element);
+            });
+            await this.teamBlue.forEach(async (element)=>{
+                await addUserLossService(element);
+            });
+        }
+        await this.stopGame();
+    }
 }
 
 module.exports = {Lobby};
