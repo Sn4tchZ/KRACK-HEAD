@@ -293,9 +293,7 @@ class Lobby {
         if(this.ready.length == 10) return;
         await this.lobbyMsg.delete().catch((e)=>console.log(e));
 
-        await this.participants.forEach((elem)=>{
-            inQueue = inQueue.filter((e)=>e!=elem)
-        })
+        await this.stopGame();
 
         const newId = Date.now();
         Lobbys[newId] = await new Lobby(this.channel,newId,this.categoryId);
