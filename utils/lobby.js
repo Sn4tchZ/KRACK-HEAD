@@ -275,8 +275,6 @@ class Lobby {
 }
 
     async stopGame(){
-        if(this.ready.length < 10) return;
-        
         await this.participants.forEach((elem)=>{
             inQueue = inQueue.filter((e)=>e!=elem)
         })
