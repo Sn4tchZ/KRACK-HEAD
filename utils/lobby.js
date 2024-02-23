@@ -2,6 +2,7 @@ const interactionCreate = require("../events/interactionCreate");
 const { ButtonBuilder, ButtonStyle, ActionRowBuilder, PermissionFlagsBits, ChannelType, PermissionsBitField } = require('discord.js');
 let {Lobbys, inQueue} = require('./lobbys.js');
 const WebSocket = require('ws');
+const {addUserWinService, addUserLossService} = require('../services/userServices.js');
 
 class Lobby {
     constructor(channel,id, categoryId){
@@ -60,6 +61,26 @@ class Lobby {
         this.channel.send({ embeds: [this.embed()], components: [row] }).then((msg)=>this.lobbyMsg = msg).catch((e)=>console.log(e));
     }
 
+    kickIfNotReady(){
+        return new Promise(resolve => {
+            const checkCondition = async () => {
+            if (this.participants.length !== this.ready.length) {
+                await this.participants.forEach((participant)=>{
+                    if(!this.ready.includes(participant)){
+                        this.participants = this.participants.filter((participanter)=>participanter != participant);
+                        inQueue = inQueue.filter(e => e !== participant);
+                    }
+                });
+                this.ready = [];
+                this.inscriptionOpen = true;
+                await this.updateMsg();
+            }
+            resolve();
+            };
+            setTimeout(checkCondition, 90000);
+        });
+    }
+
     async addPlayer(discordId) {
         if (this.inscriptionOpen && !inQueue.includes(discordId)) {
             if (this.participants.length < 10 && !this.participants.includes(discordId)) {
@@ -70,6 +91,7 @@ class Lobby {
                     let txt = ""; 
                     this.participants.map((elem)=> txt = txt + `<@${elem}> `);
                     this.channel.send("get ready "+txt).catch((e)=>console.log(e));
+                    this.kickIfNotReady();
                 }
             } else if (this.participants.length > 10) {
                 this.inscriptionOpen = false;
@@ -243,7 +265,8 @@ class Lobby {
                 },
                 {
                     id: '1201861728447762442',
-                    deny: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
+                    allow: [PermissionsBitField.Flags.ViewChannel],
+                    deny: [PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak],
                 },
             ],
         }).then((chan)=>this.blueVoc = chan).catch((err)=>console.log("error creating blue channel",err));
@@ -268,10 +291,13 @@ class Lobby {
                 },
                 {
                     id: '1201861728447762442',
-                    deny: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak],
+                    allow: [PermissionsBitField.Flags.ViewChannel],
+                    deny: [PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak],
                 },
             ],
         }).then((chan)=>this.redVoc = chan).catch((err)=>console.log("error creating red channel",err));
+
+        await this.textChan.send(` blueVoc : https://discord.com/channels/1201861728447762442/${this.blueVoc.id} \nredVoc : https://discord.com/channels/1201861728447762442/${this.redVoc.id}`).catch((err)=>console.log("error sending msg",err));
 }
 
     async stopGame(){
@@ -291,9 +317,7 @@ class Lobby {
         if(this.ready.length == 10) return;
         await this.lobbyMsg.delete().catch((e)=>console.log(e));
 
-        await this.participants.forEach((elem)=>{
-            inQueue = inQueue.filter((e)=>e!=elem)
-        })
+        await this.stopGame();
 
         const newId = Date.now();
         Lobbys[newId] = await new Lobby(this.channel,newId,this.categoryId);
@@ -338,6 +362,24 @@ class Lobby {
         });
     }
 
+    async endGame(winner){
+        if(winner){
+            await this.teamBlue.forEach(async (element)=>{
+                await addUserWinService(element);
+            });
+            await this.teamRed.forEach(async (element)=>{
+                await addUserLossService(element);
+            });
+        }else{
+            await this.teamRed.forEach(async (element)=>{
+                await addUserWinService(element);
+            });
+            await this.teamBlue.forEach(async (element)=>{
+                await addUserLossService(element);
+            });
+        }
+        await this.stopGame();
+    }
 }
 
 module.exports = {Lobby};
