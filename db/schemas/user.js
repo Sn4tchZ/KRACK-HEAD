@@ -18,11 +18,11 @@ const UserSchema = new Schema({
         type: mongoose.SchemaTypes.String,
         required: true,
     },
-    wins: {
+    elo: {
         type: mongoose.SchemaTypes.BigInt,
         required: true,
     },
-    losses: {
+    games: {
         type: mongoose.SchemaTypes.BigInt,
         required: true,
     },
